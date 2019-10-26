@@ -1,6 +1,6 @@
 {
   "name": "@chaingun/http-server",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "HTTP Server for ChainGun DB",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
@@ -51,6 +51,9 @@
     "node": ">=8.9"
   },
   "dependencies": {
+    "@chaingun/types": "^0.0.3",
+    "@types/express": "^4.17.1",
+    "express": "^4.17.1",
     "sha.js": "^2.4.11"
   },
   "devDependencies": {
@@ -87,7 +90,8 @@
     }
   },
   "prettier": {
-    "singleQuote": true
+    "singleQuote": true,
+    "semi": false
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",
