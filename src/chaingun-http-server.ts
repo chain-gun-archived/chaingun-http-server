@@ -1,8 +1,29 @@
 import { GunGraphAdapter, GunGraphData } from '@chaingun/types'
 import express, { Request, Response } from 'express'
+import Route from 'route-parser'
 
 const API_HEADERS = {
   'Content-Type': 'application/json'
+}
+
+const routes: ReadonlyArray<any> = [
+  new Route('/gun/key/*singleKey/from_node/*soul'),
+  new Route('/gun/nodes/*soul')
+]
+
+function getRouteParams(
+  path: string
+): {
+  readonly soul: string
+  readonly singleKey?: string
+} {
+  for (const route of routes) {
+    const match = route.match(path)
+    if (match) {
+      return match as any
+    }
+  }
+  return { soul: '', singleKey: undefined }
 }
 
 export async function handleGet(
@@ -11,19 +32,20 @@ export async function handleGet(
   res: Response
 ): Promise<void> {
   try {
-    const soul = req.path.replace('/gun/nodes/', '')
+    const { soul, singleKey } = getRouteParams(req.path)
+    const opts = singleKey ? { '.': singleKey } : undefined
     // tslint:disable-next-line: no-let
     let str = ''
 
     if (adapter.getJsonStringSync) {
-      str = adapter.getJsonStringSync(soul)
+      str = adapter.getJsonStringSync(soul, opts)
     } else if (adapter.getJsonString) {
-      str = await adapter.getJsonString(soul)
+      str = await adapter.getJsonString(soul, opts)
     } else if (adapter.getSync) {
-      const json = adapter.getSync(soul)
+      const json = adapter.getSync(soul, opts)
       str = json ? JSON.stringify(json) : ''
     } else {
-      const json = await adapter.get(soul)
+      const json = await adapter.get(soul, opts)
       str = json ? JSON.stringify(json) : ''
     }
 
@@ -83,6 +105,10 @@ export async function handlePut(
 export function createServer(adapter: GunGraphAdapter): express.Application {
   const app = express()
   app.use(express.json())
+
+  app.get('/gun/key/*', (req, res) => {
+    handleGet(adapter, req, res)
+  })
 
   app.get('/gun/nodes/*', (req, res) => {
     handleGet(adapter, req, res)
