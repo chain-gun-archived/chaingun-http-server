@@ -8,6 +8,9 @@ const API_HEADERS = {
 
 const routes: ReadonlyArray<any> = [
   new Route('/gun/key/*singleKey/from_node/*soul'),
+  new Route('/gun/keys/from/*fromLex/to/*toLex/from_node/*soul'),
+  new Route('/gun/keys/from/*fromLex/from_node/*soul'),
+  new Route('/gun/keys/to/*toLex/from_node/*soul'),
   new Route('/gun/nodes/*soul')
 ]
 
@@ -16,6 +19,8 @@ function getRouteParams(
 ): {
   readonly soul: string
   readonly singleKey?: string
+  readonly fromLex?: string
+  readonly toLex?: string
 } {
   for (const route of routes) {
     const match = route.match(path)
@@ -32,20 +37,37 @@ export async function handleGet(
   res: Response
 ): Promise<void> {
   try {
-    const { soul, singleKey } = getRouteParams(req.path)
-    const opts = singleKey ? { '.': singleKey } : undefined
+    const { soul, singleKey, fromLex, toLex } = getRouteParams(req.path)
+    const opts: any = {}
+
+    if (singleKey) {
+      // tslint:disable-next-line: no-object-mutation
+      opts['.'] = singleKey
+    }
+
+    if (fromLex) {
+      // tslint:disable-next-line: no-object-mutation
+      opts['>'] = fromLex
+    }
+
+    if (toLex) {
+      // tslint:disable-next-line: no-object-mutation
+      opts['<'] = toLex
+    }
+
+    const getOpts = Object.keys(opts).length ? opts : undefined
     // tslint:disable-next-line: no-let
     let str = ''
 
     if (adapter.getJsonStringSync) {
-      str = adapter.getJsonStringSync(soul, opts)
+      str = adapter.getJsonStringSync(soul, getOpts)
     } else if (adapter.getJsonString) {
-      str = await adapter.getJsonString(soul, opts)
+      str = await adapter.getJsonString(soul, getOpts)
     } else if (adapter.getSync) {
-      const json = adapter.getSync(soul, opts)
+      const json = adapter.getSync(soul, getOpts)
       str = json ? JSON.stringify(json) : ''
     } else {
-      const json = await adapter.get(soul, opts)
+      const json = await adapter.get(soul, getOpts)
       str = json ? JSON.stringify(json) : ''
     }
 
@@ -107,6 +129,10 @@ export function createServer(adapter: GunGraphAdapter): express.Application {
   app.use(express.json())
 
   app.get('/gun/key/*', (req, res) => {
+    handleGet(adapter, req, res)
+  })
+
+  app.get('/gun/keys/*', (req, res) => {
     handleGet(adapter, req, res)
   })
 
